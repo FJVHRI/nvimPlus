@@ -1,0 +1,10 @@
+vim.defer_fn(function()
+  local ok, C = pcall(function() return require("noice.config").options end)
+  if not ok then print("ERR: " .. tostring(C)); vim.cmd("qa!"); return end
+  print("cmdline.view = " .. tostring(C.cmdline.view))
+  print("search_down.view = " .. tostring(C.cmdline.format.search_down and C.cmdline.format.search_down.view))
+  print("search_up.view   = " .. tostring(C.cmdline.format.search_up and C.cmdline.format.search_up.view))
+  print("presets.bottom_search = " .. tostring(C.presets.bottom_search))
+  print("cmdline_popup pos = " .. vim.inspect(C.views.cmdline_popup and C.views.cmdline_popup.position))
+  vim.cmd("qa!")
+end, 400)

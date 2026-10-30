@@ -1,0 +1,441 @@
+-- coc-sort.nvim：nvim-coc-lite 同款排序能力的独立插件（C 子进程 sortd 动态排序 +
+-- 词频排序），并自带 coc-word 词典源替代 blink-cmp-dictionary。
+-- 词频与 nvim-coc-lite 共用一份 frequency.json，互相累积。
+local plugin_dir = "/home/a/.config/nvim/coc-sort.nvim"
+vim.opt.runtimepath:prepend(plugin_dir)
+-- 关键：lazy.nvim 在 setup() 内同步导入 spec 文件，而 nvim 对 rtp→package.path
+-- 的更新是异步调度的，此刻还没生效（报 module not found 的根因）。
+-- 显式把插件 lua 目录补进 package.path，保证 spec 加载阶段立即可 require。
+local lua_dir = plugin_dir .. "/lua"
+if not package.path:find(lua_dir, 1, true) then
+  package.path = package.path .. ";" .. lua_dir .. "/?.lua;" .. lua_dir .. "/?/init.lua"
+end
+local csort = require("coc-sort")
+csort.setup({
+  frequency_path = "/home/a/.local/share/nvim/nvim-coc-lite/frequency.json",
+  -- sortd 二进制默认用插件自带的 native/sortd；需要时可用 sortd_path 覆盖
+})
+
+-- ============ 路径补全上下文（对齐 coc.nvim：输入 /xx 时菜单里只出路径候选）============
+-- 判定光标前的最后一个 token 是否处于"正在输入路径"状态：
+--   1) 锚定形式：/abs、./rel、../up、~/home、$VAR/、C:\  —— 直接判定为路径；
+--   2) 相对形式 dir/xxx：仅当首段是真实存在的目录（避免 and/or 这类正文误判
+--      导致菜单被清空后 path 源又给不出结果）。
+-- cursor[2] 与 ctx.line:sub(1, cursor[2]) 的用法同 blink path 源内部实现。
+local function in_path_context(ctx)
+  local line = ctx.line
+  if not line then
+    return false
+  end
+  local before = line:sub(1, ctx.cursor[2])
+  -- 取最后一个空白/引号/括号之后的 token（与 path 源的 dirname 语义大致对齐）
+  local token = before:match("[^%s\"'`(]*$") or ""
+  if token == "" then
+    return false
+  end
+  -- Windows 盘符形式（C:\、C:/）没有 / 也要先判
+  if token:match("^%a:[/\\]") then
+    return true
+  end
+  if not token:find("/", 1, true) then
+    return false
+  end
+  if token:match("^/") or token:match("^%.%.?/") or token:match("^~/") or token:match("^%$[%w_]+/") then
+    return true
+  end
+  local head = token:match("^(.+)/[^/]+$") or token:match("^(.+)/$")
+  if head and head ~= "" then
+    return vim.fn.isdirectory(head) == 1 or vim.fn.isdirectory(vim.fn.getcwd() .. "/" .. head) == 1
+  end
+  return false
+end
+
+-- 供 lsp/dictionary/snippets 在路径上下文里让位：coc 语义 = 菜单里只剩路径候选
+local function no_items_in_path_context(ctx, items)
+  if in_path_context(ctx) then
+    return {}
+  end
+  return items
+end
+
+-- ============ 临时调试工具：补全现场取证（插入模式按 <C-g>d）============
+-- 在补全菜单打开的瞬间按键，把菜单里每个候选的真实数据（来源/类型/分数/
+-- 优先级/词频）写入 stdpath("config")/_completion_dump.txt，用于对照
+-- coc.nvim 体验排查。问题解决后可整段删除。
+vim.keymap.set("i", "<C-g>d", function()
+  local lines = {
+    os.date("%Y-%m-%d %H:%M:%S"),
+    "keyword='" .. vim.fn.getline("."):sub(1, vim.fn.col(".")) .. "' ft=" .. vim.bo.filetype,
+  }
+  local ok_fuzz, fuzz = pcall(require, "blink.cmp.fuzzy")
+  local ok_cfg, cfg = pcall(require, "blink.cmp.config")
+  if ok_fuzz and ok_cfg then
+    lines[#lines + 1] = ("runtime: impl=%s frecency=%s sorts1=%s buffer_enabled=%s snip_offset=%s"):format(
+      tostring(fuzz.implementation_type),
+      tostring(cfg.fuzzy.frecency.enabled),
+      type(cfg.fuzzy.sorts[1]),
+      tostring(cfg.sources.providers.buffer.enabled),
+      tostring(cfg.snippets.score_offset)
+    )
+  end
+  local ok_list, list = pcall(require, "blink.cmp.completion.list")
+  if not ok_list then
+    lines[#lines + 1] = "ERROR: " .. tostring(list)
+  else
+    lines[#lines + 1] = "n_items="
+      .. tostring(list.items and #list.items or 0)
+      .. " selected_idx="
+      .. tostring(list.selected_item_idx)
+    for i, it in ipairs(list.items or {}) do
+      lines[#lines + 1] = string.format(
+        "%d|%-26s|src=%-10s|kind=%-2s|score=%-7s|prio=%-3s|bonus=%-3s|exact=%-5s|offset=%s",
+        i,
+        tostring(it.label),
+        tostring(it.source_name),
+        tostring(it.kind),
+        tostring(it.score),
+        tostring(it.coc_priority),
+        tostring(it.coc_bonus),
+        tostring(it.exact),
+        tostring(it.score_offset)
+      )
+    end
+  end
+  local path = vim.fn.stdpath("config") .. "/_completion_dump.txt"
+  vim.fn.writefile(lines, path)
+  vim.api.nvim_echo({ { "[dump] " .. #lines .. " 行 → " .. path, "MoreMsg" } }, false, {})
+end, { desc = "dump blink completion state (debug)" })
+
+return {
+  "saghen/blink.cmp",
+  dependencies = {
+    "rafamadriz/friendly-snippets",
+    --    "onsails/lspkind-nvim",
+    { "nvim-mini/mini.icons", pin = true }, -- 👈 用 mini.icons 替换 lspkind；pin=true 锁死版本（图标已就地改在插件内，禁止更新覆盖）
+    "nvim-tree/nvim-web-devicons",
+    "L3MON4D3/LuaSnip",
+    -- 词典源已由 coc-sort.nvim 自带（coc-sort.word），不再需要 blink-cmp-dictionary
+  },
+  version = "*",
+  opts = {
+    keymap = {
+      preset = "none",
+      -- Tab：snippet 占位符跳转优先（用户明确要求的 coc/LuaSnip 语义）。
+      -- 顺序：LuaSnip 直接跳 → blink 管理的片段 → 补全菜单 → 交回原生 Tab。
+      -- 每个分支都显式 return true/false：blink 的键语义是"真值=已处理并停止，
+      -- false=交给后面的 fallback"，否则会出现"跳完占位符又被插入一个缩进"。
+      ["<Tab>"] = {
+        function(cmp)
+          local ls_ok, ls = pcall(require, "luasnip")
+          if ls_ok and ls.jumpable and ls.jumpable(1) then
+            ls.jump(1)
+            return true
+          end
+          if cmp.snippet_active({ direction = 1 }) then
+            return cmp.snippet_forward()
+          end
+          if cmp.is_visible() then
+            return cmp.select_next()
+          end
+          return false
+        end,
+        "fallback",
+      },
+      ["<S-Tab>"] = {
+        function(cmp)
+          local ls_ok, ls = pcall(require, "luasnip")
+          if ls_ok and ls.jumpable and ls.jumpable(-1) then
+            ls.jump(-1)
+            return true
+          end
+          if cmp.snippet_active({ direction = -1 }) then
+            return cmp.snippet_backward()
+          end
+          if cmp.is_visible() then
+            return cmp.select_prev()
+          end
+          return false
+        end,
+        "fallback",
+      },
+      ["<Up>"] = { "select_prev", "fallback" },
+      ["<Down>"] = { "select_next", "fallback" },
+      -- <CR> 接受补全时给词频计数（coc-lite 的 frequency.json）
+      ["<CR>"] = {
+        function(cmp)
+          local ok, item = pcall(cmp.get_selected_item)
+          if ok and item then
+            csort.count_accept(item)
+          end
+          return cmp.accept()
+        end,
+        "fallback",
+      },
+      ["<Esc>"] = { "hide", "fallback" },
+      ["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
+      ["<C-k>"] = { "show_signature", "hide_signature", "fallback" },
+      -- 文档控制按键
+      ["<C-d>"] = { "show_documentation", "hide_documentation" },
+      ["<C-f>"] = { "scroll_documentation_down", "fallback" },
+      ["<C-b>"] = { "scroll_documentation_up", "fallback" },
+    },
+    -- 关键：blink 的片段引擎必须指向 LuaSnip（你的片段全部来自 LuaSnip）。
+    -- LazyVim 的 coding.blink extra 默认是 preset='default'（走 Neovim 原生
+    -- vim.snippet），那样 cmp.snippet_active() 对 LuaSnip 片段恒为 false，
+    -- Tab 就跳不了占位符、只能进菜单。改成 'luasnip' 后：
+    --   snippet_active -> ls.jumpable(dir)，snippet_forward -> ls.jump(1)
+    snippets = {
+      preset = "luasnip",
+      -- ★ blink 默认给所有 snippet 打 -3 分（config/snippets.lua:73）。先归零；
+      --   再加 +2 作为“视觉保险”：精确命中时 snippet(72) 稳压 dict(70)/LSP keyword(70)，
+      --   同时 providers.snippets.transform_items 的 coc_priority=100 会在同分 comparator 里置顶。
+      --   只影响同分段，不会用低分 snippet 压过高分 LSP 项。
+      score_offset = 2,
+    },
+    appearance = {
+      nerd_font_variant = "mono",
+    },
+    completion = {
+      trigger = {
+        prefetch_on_insert = true,
+        show_in_snippet = true,
+
+        -- ⚠️ 已改回 false（blink 默认值，也是 coc.nvim 语义）：coc 空关键词从不弹菜单。
+        -- 之前设 true 时，进入插入模式就用空关键词弹出"全量候选"菜单
+        -- （无过滤、按存储顺序排列），就是你截图里那排不相关 snippet 的来源。
+        -- 打字时的自动弹出由 show_on_keyword=true（默认）负责，不受影响。
+        show_on_insert = true,
+        show_on_backspace = true,
+        -- min_keyword_length = 1,
+      },
+      list = {
+        selection = {
+          preselect = true,
+          -- true：Tab/↑↓ 移动高亮时把当前项实时插入缓冲区（coc 风格）；
+          -- 按 Enter 同样接受 / 展开 snippet。
+          auto_insert = true,
+        },
+      },
+      menu = {
+        auto_show = true,
+        scrollbar = false,
+        border = "rounded", -- 与第二段配置一致，保留圆角
+        winhighlight = "Normal:BlinkCmpMenu,FloatBorder:FloatBorder,CursorLine:BlinkCmpMenuSelection,Search:None",
+        draw = {
+          components = {
+            kind_icon = {
+              text = function(ctx)
+                local icon = ctx.kind_icon
+                if vim.tbl_contains({ "Path" }, ctx.source_name) then
+                  local dev_icon, _ = require("nvim-web-devicons").get_icon(ctx.label)
+                  if dev_icon then
+                    icon = dev_icon
+                  end
+                else
+                  --  icon = require("lspkind").symbol_map[ctx.kind] or ""
+                  local mi = require("mini.icons")
+                  local lsp_icon = mi.get("lsp", ctx.kind)
+                  if lsp_icon and lsp_icon ~= "" then
+                    icon = lsp_icon
+                  end
+                end
+                return icon .. ctx.icon_gap
+              end,
+              highlight = function(ctx)
+                local hl = ctx.kind_hl
+                if vim.tbl_contains({ "Path" }, ctx.source_name) then
+                  local dev_icon, dev_hl = require("nvim-web-devicons").get_icon(ctx.label)
+                  if dev_icon then
+                    hl = dev_hl
+                  end
+                else
+                  --用mini.icons的高亮
+                  local _, mi_hl = require("mini.icons").get("lsp", ctx.kind)
+                  if mi_hl then
+                    hl = mi_hl
+                  end
+                end
+                return hl
+              end,
+            },
+            source_name = {
+              text = function(ctx)
+                return "[" .. ctx.source_name .. "]"
+              end,
+              highlight = "Comment",
+              width = { fill = true },
+            },
+            label_description = {
+              width = { max = 30 },
+              text = function(ctx)
+                return ctx.label_description or ""
+              end,
+              highlight = "Comment",
+            },
+          },
+          -- 👇 保留你原有的三栏布局（比第二段的两栏多了来源名），不替换成简化两栏
+          columns = {
+            { "kind_icon", "kind", gap = 1 },
+            { "label", "label_description", gap = 1 },
+            { "source_name" },
+          },
+        },
+      },
+      -- 自动文档配置：选中候选项时自动显示
+      documentation = {
+        auto_show = true,
+        auto_show_delay_ms = 200, -- 延迟避免闪屏
+        update_delay_ms = 50,
+        window = {
+          border = "rounded", -- 与第二段配置一致，保留圆角
+          scrollbar = true,
+          max_width = 80,
+          max_height = 20,
+          winhighlight = "Normal:BlinkCmpDoc,FloatBorder:FloatBorder,EndOfBuffer:BlinkCmpDoc",
+        },
+      },
+    },
+    -- 签名提示配置
+    signature = {
+      enabled = true,
+      window = {
+        border = "rounded",
+        scrollbar = false,
+      },
+    },
+    sources = {
+      -- buffer 词源已按用户要求禁用：输入 int 时 buffer 的 "Keyword int" 总是
+      -- 压在想要的 int snippet 前面，对 C++ 工作流是噪音（coc 用户也常关它）
+      default = { "lsp", "dictionary", "snippets", "path" },
+      providers = {
+        lsp = {
+          -- coc: languageSourcePriority = 99（src/completion/index.ts:148）
+          transform_items = function(ctx, items)
+            -- 路径上下文（/xx、~/、./ 等）时让位给 path 源， coc 语义
+            if in_path_context(ctx) then
+              return {}
+            end
+            local normal, keywords = {}, {}
+            for _, item in ipairs(items) do
+              -- 确保函数签名显示在 label_description
+              if item.detail and not item.label_description then
+                item.label_description = item.detail
+              end
+              -- ★ clangd 会把 C++ 关键字（int/float/const/inline...）作为 kind=Keyword
+              --   的候选发回来：精确命中时与 snippet 同分（如 int 70=70），但 LSP 的
+              --   priority 99 会压住 snippet(9)/dict(1) —— 这就是"输入 int 时
+              --   Keyword int 排在 int snippet 前面"的根源。
+              --   按"keyword 没用就禁用掉"：Keyword 类候选 priority 降到 0（不删，
+              --   没有 snippet 的关键字如 volatile 仍可补全），任何源都能压过它。
+              if item.kind == vim.lsp.protocol.CompletionItemKind.Keyword then
+                keywords[#keywords + 1] = item
+              else
+                normal[#normal + 1] = item
+              end
+            end
+            -- 注意：不再按 kind 加 score_offset —— coc 的 key1 是纯 fuzzy 分，
+            -- 源权重由 comparator 第 2 key（priority）承担
+            local out = csort.tag(ctx, normal, 99)
+            vim.list_extend(out, csort.tag(ctx, keywords, 0))
+            return out
+          end,
+        },
+        dictionary = {
+          module = "coc-sort.word", -- 插件自带词典源（替代 blink-cmp-dictionary）
+          name = "Text", -- 词典项在补全菜单里显示为 Text 标签（kind 也用内置 Text）
+          -- priority 压到 1（coc 原生词源档）：否则 dict 的精确命中会和 snippet
+          -- 的精确命中同分同权，压住用户想要的 snippet
+          transform_items = function(ctx, items)
+            return no_items_in_path_context(ctx, csort.tag(ctx, items, 1))
+          end,
+          opts = {
+            dictionary_files = {
+              -- 词典随 coc-sort.nvim 插件自带，放在插件 data/ 下，避免散落在外面
+              plugin_dir .. "/data/10k.txt",
+            },
+            case_insensitive = true,
+          },
+        },
+        buffer = {
+          -- ★ 用户要求禁用（opts_extend 可能把它拼回 default 列表，
+          --   所以在 provider 级硬关，双保险）
+          enabled = false,
+        },
+        snippets = {
+          min_keyword_length = 1,
+          -- 用户要求 snippet 排在最前:priority 提到 100,高于 LSP normal(99)/dict(1)。
+          -- 仅在同 fuzzy score 时生效,不会用低分 snippet 压过高分 LSP 项。
+          transform_items = function(ctx, items)
+            -- 路径上下文让位（coc 语义）：/xx 时菜单里只有路径候选
+            if in_path_context(ctx) then
+              return {}
+            end
+            items = csort.tag(ctx, items, 100)
+            -- friendly-snippets 里 #inc(双引号) 与 #inc<(尖括号) 同分同权。
+            -- 默认 sortText 按 trigger 字典序会让 #inc 排在 #inc< 前面;
+            -- 更关键的是:用户输入 #inc 时,#inc 是精确匹配,#inc< 是前缀匹配,
+            -- fuzzy score 上 #inc 更高,光靠 priority 压不住。
+            -- 给尖括号版直接加 score_offset,从分数层就把它抬到 #inc~ 上面。
+            for _, item in ipairs(items) do
+              local label = item.label or ""
+              local insert = item.insertText or ""
+              if (label:find("^#inc") or insert:find("^#inc")) and (label:find("<") or insert:find("<")) then
+                item.coc_priority = 101
+                -- provider 级 snippets.score_offset=2 仍会叠加,这里 +8 足够稳压双引号版
+                item.score_offset = 8
+              end
+            end
+            return items
+          end,
+        },
+        path = {
+          -- ★ 必须为 0：/home/ 这种"完整目录段+尾随/"状态下关键词为空，
+          --   provider/init.lua:127 会因 keyword 长度 < min_keyword_length 直接跳过
+          --   path 源（现象 = 输入 /home/ 后菜单空白，看不到子目录）。
+          --   置 0 后空关键词也查询：/ 一打完即列出当前目录全部子项（coc 行为）。
+          --   其它场景安全：dirname 解析失败（如 "foo." 非路径）时 path 源返回空。
+          min_keyword_length = 0,
+          -- coc: 原生 file 源 priority 1
+          transform_items = function(ctx, items)
+            items = csort.tag(ctx, items, 1)
+            -- 路径上下文里目录稳定排在文件前面：blink path 源虽用 sortText
+            -- ('1dir'/'2file') 排目录在前，但 csort.comparator 第一 key 是
+            -- fuzzy 分，会盖掉它。给目录加 score_offset 从分数层抬起来，
+            -- coc_priority 再加一档兜底。
+            if in_path_context(ctx) then
+              local Folder = vim.lsp.protocol.CompletionItemKind.Folder
+              for _, item in ipairs(items) do
+                if item.kind == Folder then
+                  item.score_offset = (item.score_offset or 0) + 8
+                  item.coc_priority = (item.coc_priority or 1) + 1
+                end
+              end
+            end
+            return items
+          end,
+        },
+      },
+    },
+    fuzzy = {
+      implementation = "prefer_rust_with_warning",
+      max_typos = 2,
+      -- coc 的 key1 是纯 fuzzy 分（无 frecency 概念）：关掉 blink 的 frecency，
+      -- 常用词上浮由 comparator 第 4 key（frequency.json 词频 recency）承担
+      frecency = { enabled = false },
+      -- coc-sort：自定义 comparator 逐 key 复刻 coc.nvim sortItems()：
+      -- score 降序 → priority 降序 → 同源 sortText → 词频 → 长度
+      sorts = { csort.comparator, "exact", "score", "sort_text", "kind", "label" },
+    },
+    -- ⚡ 命令行补全：只加 <Up>/<Down> 轮询候选，其它全部走 blink/LazyVim 默认。
+    --    默认配置含 buffer+cmdline 源、Property kind 列、以及菜单行为。
+    cmdline = {
+      keymap = {
+        preset = "cmdline",
+        ["<Up>"] = { "select_prev", "fallback" },
+        ["<Down>"] = { "select_next", "fallback" },
+      },
+    },
+  },
+  -- 不再让 LazyVim 扩展 sources.default，避免它把 buffer/dadbod 等默认源
+  -- 拼回列表造成重复 / 噪音。default 列表完全由上面控制。
+}

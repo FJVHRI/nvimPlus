@@ -1,0 +1,288 @@
+-- ~/.config/nvim/lua/plugins/trans.lua
+
+return {
+  -- 禁用在线翻译插件
+  {
+    "JuanZoran/Trans.nvim",
+    enabled = false,
+  },
+
+  -- 自定义离线词典 + 有道例句
+  {
+    name = "ecdict-offline",
+    dir = vim.fn.stdpath("config"),
+    lazy = false,
+    config = function()
+      local dict_path = vim.fn.stdpath("config") .. "/dict/stardict.db"
+
+      -- 查询本地 ECDICT
+      local function query_ecdict(word)
+        if vim.fn.filereadable(dict_path) == 0 then
+          return nil, "词典未找到: " .. dict_path
+        end
+
+        local cmd = string.format(
+          'sqlite3 "%s" "SELECT phonetic, translation, exchange, detail FROM stardict WHERE word = \'%s\' LIMIT 1"',
+          dict_path,
+          word:gsub("'", "''")
+        )
+
+        local output = vim.fn.system(cmd)
+        if vim.v.shell_error ~= 0 or output == "" then
+          return nil, "未找到: " .. word
+        end
+
+        local parts = vim.split(output:gsub("\n$", ""), "|", { plain = true })
+        return {
+          phonetic = parts[1] or "",
+          translation = parts[2] or "",
+          exchange = parts[3] or "",
+          detail = parts[4] or "",
+        }
+      end
+
+      -- 新增：获取有道在线例句（curl 方式）
+      local function fetch_youdao_examples(word)
+        -- URL 编码
+        local encoded_word = word:gsub(" ", "%%20"):gsub("'", "%%27")
+        local cmd = string.format(
+          "curl -s -m 4 'https://dict.youdao.com/jsonapi?q=%s' -H 'User-Agent: Mozilla/5.0' 2>/dev/null",
+          encoded_word
+        )
+
+        local output = vim.fn.system(cmd)
+        if vim.v.shell_error ~= 0 or output == "" then
+          return nil
+        end
+
+        local ok, json = pcall(vim.json.decode, output)
+        if not ok or type(json) ~= "table" then
+          return nil
+        end
+
+        local examples = {}
+
+        -- 从双语例句部分提取 (blng_sents_part)
+        if json.blng_sents_part and json.blng_sents_part["sentence-pair"] then
+          for _, pair in ipairs(json.blng_sents_part["sentence-pair"]) do
+            if #examples >= 3 then
+              break
+            end -- 最多取3个
+            table.insert(examples, {
+              en = pair.sentence,
+              cn = pair["sentence-translation"],
+              source = "有道",
+            })
+          end
+        end
+
+        -- 如果没有双语例句，尝试从权威例句提取 (auth_sents_part)
+        if #examples == 0 and json.auth_sents_part and json.auth_sents_part.sent then
+          for _, sent in ipairs(json.auth_sents_part.sent) do
+            if #examples >= 3 then
+              break
+            end
+            table.insert(examples, {
+              en = sent.sentence,
+              cn = sent["foreign-translation"] or "",
+              source = "有道",
+            })
+          end
+        end
+
+        return #examples > 0 and examples or nil
+      end
+
+      -- 修改：增加 youdao_examples 参数
+      local function show_result(word, data, youdao_examples)
+        local lines = {}
+
+        table.insert(
+          lines,
+          "─────────────────────────────────────------------"
+        )
+        table.insert(lines, string.format("│  %-33s  │", word))
+        table.insert(
+          lines,
+          "├─────────────────────────────────────-----------"
+        )
+
+        if data.phonetic and data.phonetic ~= "" then
+          table.insert(lines, string.format("│  音标: %s", data.phonetic))
+        end
+
+        if data.translation and data.translation ~= "" then
+          for line in data.translation:gmatch("[^\n]+") do
+            table.insert(lines, string.format("│  %s", line))
+          end
+        end
+
+        if data.exchange and data.exchange ~= "" then
+          table.insert(
+            lines,
+            "├─────────────────────────────────────----------"
+          )
+          table.insert(lines, "│  【词形变化】")
+          for part in data.exchange:gmatch("[^/]+") do
+            local key, val = part:match("(.+):(.+)")
+            if key and val then
+              local labels = {
+                p = "过去式",
+                d = "过去分词",
+                i = "现在分词",
+                ["3"] = "第三人称单数",
+                s = "复数",
+                r = "比较级",
+                t = "最高级",
+                ["0"] = "原型",
+                ["1"] = "派生",
+              }
+              table.insert(lines, string.format("│    %s: %s", labels[key] or key, val))
+            end
+          end
+        end
+
+        -- 修改后的例句显示逻辑：优先显示有道例句，其次本地例句
+        local has_local = data.detail and data.detail ~= ""
+        local has_youdao = youdao_examples and #youdao_examples > 0
+
+        if has_youdao or has_local then
+          table.insert(
+            lines,
+            "├─────────────────────────────────────---------"
+          )
+          table.insert(lines, "│  【例句】")
+
+          -- 1. 先显示有道在线例句（带标识）
+          if has_youdao then
+            for i, ex in ipairs(youdao_examples) do
+              if #lines > 28 then
+                break
+              end
+              table.insert(lines, string.format("│  [%d] %s", i, ex.en))
+              table.insert(lines, string.format("│      %s", ex.cn))
+              table.insert(lines, "│")
+            end
+          end
+
+          -- 2. 再显示本地 ECDICT 例句（如果有）
+          if has_local then
+            local ok, detail_json = pcall(vim.json.decode, data.detail)
+            if ok and type(detail_json) == "table" then
+              for pos, defs in pairs(detail_json) do
+                if type(defs) == "table" then
+                  for _, def in ipairs(defs) do
+                    if #lines > 28 then
+                      break
+                    end
+                    if def.example then
+                      table.insert(lines, string.format("│  • %s", def.example))
+                      if def.translation then
+                        table.insert(lines, string.format("│    %s", def.translation))
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        else
+          -- 都没有例句
+          table.insert(
+            lines,
+            "├─────────────────────────────────────--------"
+          )
+          table.insert(lines, "│  [无例句]")
+          table.insert(lines, "│  本地无数据且网络获取失败")
+        end
+
+        table.insert(
+          lines,
+          "╰─────────────────────────────────────----------"
+        )
+
+        local buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+        vim.bo[buf].modifiable = false
+        vim.bo[buf].filetype = "dictionary"
+
+        local width = math.min(100, vim.o.columns - 4)
+        local height = math.min(#lines, vim.o.lines - 4)
+
+        local win = vim.api.nvim_open_win(buf, true, {
+          relative = "editor",
+          width = width,
+          height = height,
+          col = (vim.o.columns - width) / 2,
+          row = (vim.o.lines - height) / 2,
+          style = "minimal",
+          border = "rounded",
+          title = " 离线词典 + 有道例句 ",
+          title_pos = "center",
+        })
+
+        vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, silent = true })
+        vim.keymap.set("n", "<Esc>", "<cmd>close<cr>", { buffer = buf, silent = true })
+      end
+
+      local function translate(mode, input_word)
+        local word
+        if input_word then
+          word = input_word
+        elseif mode == "v" then
+          local old_reg = vim.fn.getreg('"')
+          vim.cmd('normal! ""y')
+          word = vim.fn.getreg('"'):gsub("^%s*(.-)%s*$", "%1")
+          vim.fn.setreg('"', old_reg)
+        else
+          word = vim.fn.expand("<cword>")
+        end
+
+        if not word or word == "" then
+          return
+        end
+
+        vim.notify("查询: " .. word, vim.log.levels.INFO, { timeout = 500 })
+
+        -- 异步查询
+        vim.defer_fn(function()
+          -- 1. 查本地
+          local data, err = query_ecdict(word:lower())
+          if not data then
+            vim.notify(err or "查询失败", vim.log.levels.WARN)
+            return
+          end
+
+          -- 2. 如果本地无例句，联网获取有道例句
+          local youdao_examples = nil
+          if not data.detail or data.detail == "" then
+            vim.schedule(function()
+              vim.notify("正在获取在线例句...", vim.log.levels.INFO, { timeout = 800 })
+            end)
+            youdao_examples = fetch_youdao_examples(word)
+          end
+
+          -- 3. 显示结果
+          vim.schedule(function()
+            show_result(word, data, youdao_examples)
+          end)
+        end, 10)
+      end
+
+      -- 快捷键
+      vim.keymap.set("n", "mm", function()
+        translate("n")
+      end, { desc = "词典查单词" })
+      vim.keymap.set("v", "mm", function()
+        translate("v")
+      end, { desc = "词典查选中文本" })
+      vim.keymap.set("n", "mi", function()
+        vim.ui.input({ prompt = "输入单词: " }, function(input)
+          if input then
+            translate("n", input)
+          end
+        end)
+      end, { desc = "词典输入查询" })
+    end,
+  },
+}

@@ -1,0 +1,422 @@
+用 **Ollama + 本地大模型**（如 Qwen2.5）实现 AI 翻译，支持单词详解和中英互译。
+
+## 1. 安装 Ollama 和模型
+
+```bash
+# 安装 Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 拉取翻译专用模型（Qwen2.5 7B 中英双语强，适合翻译）
+ollama pull qwen2.5:7b
+
+# 启动服务（后台运行）
+ollama serve &
+```
+
+## 2. Neovim 配置
+
+替换 `~/.config/nvim/lua/plugins/trans.lua`：
+
+```lua
+return {
+  "JuanZoran/Trans.nvim",
+  enabled = false,  -- 禁用原插件
+}
+
+-- 自定义 AI 翻译配置（放在文件末尾或单独文件）
+local function get_visual_selection()
+  local _, ls, cs = unpack(vim.fn.getpos("'<"))
+  local _, le, ce = unpack(vim.fn.getpos("'>"))
+  local lines = vim.api.nvim_buf_get_text(0, ls-1, cs-1, le-1, ce, {})
+  return table.concat(lines, "\n")
+end
+
+local function ai_translate(mode)
+  local text
+  if mode == "v" then
+    text = get_visual_selection()
+  else
+    text = vim.fn.expand("<cword>")
+  end
+  
+  if text == "" then return end
+  
+  -- 判断是单词还是句子（简单启发式）
+  local is_word = not text:match("%s") and #text < 30
+  
+  -- 构建 Prompt
+  local prompt
+  if is_word then
+    -- 单词模式：详细词典式解释
+    prompt = string.format([[请作为专业英汉词典，详细解释单词 "%s"：
+
+【音标】IPA 音标
+【词性】列出所有词性及对应中文释义
+【用法】常用搭配、语法说明
+【例句】3个双语例句（英文+中文翻译）
+【同根词】派生词、词形变化
+
+请用清晰的格式输出。]], text)
+  else
+    -- 句子模式：直接翻译
+    prompt = string.format([[请将以下文本翻译成地道的中文（如果是中文则翻译成英文），保持原意和语气：
+
+%s
+
+翻译：]], text)
+  end
+  
+  -- 调用 Ollama API
+  local body = vim.json.encode({
+    model = "qwen2.5:7b",  -- 可改为 llama3.1:8b / gemma2:9b
+    prompt = prompt,
+    stream = false
+  })
+  
+  -- 显示加载提示
+  local notify_id = vim.notify("AI 翻译中...", vim.log.levels.INFO, { title = "AI Translate", timeout = false })
+  
+  vim.fn.jobstart({"curl", "-s", "-X", "POST", "http://localhost:11434/api/generate", 
+    "-H", "Content-Type: application/json", 
+    "-d", body}, {
+    stdout_buffered = true,
+    on_stdout = function(_, data)
+      if data then
+        local response = table.concat(data, "\n")
+        local ok, decoded = pcall(vim.json.decode, response)
+        if ok and decoded.response then
+          -- 关闭加载提示
+          vim.notify("", vim.log.levels.INFO, { replace = notify_id, timeout = 1 })
+          
+          -- 显示结果（使用浮动窗口）
+          local lines = vim.split(decoded.response, "\n")
+          local buf = vim.api.nvim_create_buf(false, true)
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+          vim.api.nvim_buf_set_option(buf, "modifiable", false)
+          vim.api.nvim_buf_set_option(buf, "filetype", "markdown")
+          
+          local width = math.min(80, vim.o.columns - 4)
+          local height = math.min(#lines + 2, vim.o.lines - 4)
+          
+          vim.api.nvim_open_win(buf, true, {
+            relative = "editor",
+            width = width,
+            height = height,
+            col = (vim.o.columns - width) / 2,
+            row = (vim.o.lines - height) / 2,
+            style = "minimal",
+            border = "rounded",
+            title = " AI 翻译 (" .. (is_word and "单词" or "句子") .. ") ",
+            title_pos = "center"
+          })
+        end
+      end
+    end,
+    on_stderr = function(_, err)
+      vim.notify("翻译失败: " .. vim.inspect(err), vim.log.levels.ERROR)
+    end
+  })
+end
+
+-- 快捷键绑定
+vim.keymap.set("n", "mm", function() ai_translate("n") end, { desc = "AI 翻译单词" })
+vim.keymap.set("v", "mm", function() ai_translate("v") end, { desc = "AI 翻译选中文本" })
+vim.keymap.set("n", "mi", function()
+  vim.ui.input({ prompt = "输入要翻译的文本: " }, function(input)
+    if input then
+      local lines = vim.split(input, "\n")
+      vim.api.nvim_buf_set_lines(0, -1, -1, false, lines)
+      vim.cmd("normal! gv")  -- 选中刚插入的文本
+      ai_translate("v")
+    end
+  end)
+end, { desc = "AI 翻译输入" })
+```
+
+## 3. 可选：专用翻译模型（更快更准）
+
+如果 7B 模型太慢，可用专门的轻量级翻译模型：
+
+```bash
+# 更好的选择：Helsinki-NLP/opus-mt（专门用于翻译，几百 MB）
+# 但需要 ollama 的 modelfile，或者直接用 qwen2.5:1.8b（更快）
+ollama pull qwen2.5:1.8b  # 速度更快，适合低端显卡
+```
+
+然后在配置里改 `model = "qwen2.5:1.8b"`。
+
+## 4. 使用说明
+
+| 快捷键 | 模式 | 功能 |
+|--------|------|------|
+| `mm` | Normal | 翻译光标下单词（显示音标、词性、例句）|
+| `mm` | Visual | 翻译选中的句子/段落 |
+| `mi` | Normal | 手动输入文本翻译 |
+
+**单词翻译示例输出**：
+```
+【音标】/kəmˈpjuːtər/
+【词性】n. 计算机；电脑；计算者
+【用法】personal computer (PC) 个人电脑；computer science 计算机科学
+【例句】
+1. I work at a computer all day. 
+   我整天对着电脑工作。
+2. The computer crashed suddenly.
+   电脑突然死机了。
+【同根词】compute (v. 计算), computation (n. 计算), computing (n. 计算技术)
+```
+
+**首次使用前**确保 Ollama 服务在运行：
+```bash
+ollama serve &
+# 或配置为系统服务
+sudo systemctl enable ollama  # 部分发行版支持
+```
+
+这样你就有了一个**完全离线**、**支持详细词典功能**的 AI 翻译方案，不依赖 Trans.nvim 的数据库问题。
+
+
+有！**ECDICT**（开源英汉词典数据库）完全符合你的需求，包含音标、词性、例句、词形变化（同根词），且完全离线。
+
+## 方案：ECDICT + Neovim 原生查询（最快最稳）
+
+### 1. 下载离线词典数据库
+
+```bash
+mkdir -p ~/.local/share/nvim/dict
+cd ~/.local/share/nvim/dict
+
+# 下载 ECDICT SQLite 版（约 150MB，包含 50万+ 词条）
+wget https://github.com/skywind3000/ECDICT/releases/download/1.0.28/ecdict-sqlite-28.zip
+
+# 解压
+unzip ecdict-sqlite-28.zip
+# 得到 stardict.db（这就是你要的离线词典）
+
+# 验证大小（正常约 150MB）
+ls -lh stardict.db
+```
+
+### 2. Neovim 配置（替换 trans.lua）
+
+```lua
+-- ~/.config/nvim/lua/plugins/trans.lua
+return {
+  "JuanZoran/Trans.nvim",
+  enabled = false, -- 禁用有问题的插件
+}
+
+-- 自定义 ECDICT 离线词典查询
+local dict_path = vim.fn.stdpath("data") .. "/dict/stardict.db"
+
+local function query_ecdict(word)
+  if vim.fn.filereadable(dict_path) == 0 then
+    return nil, "词典数据库未找到，请下载: " .. dict_path
+  end
+  
+  -- 使用 sqlite3 命令行查询
+  local cmd = string.format(
+    'sqlite3 %s "SELECT phonetic, translation, exchange, detail FROM stardict WHERE word = \'%s\' LIMIT 1"',
+    dict_path,
+    word:gsub("'", "''") -- 防 SQL 注入
+  )
+  
+  local output = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 or output == "" then
+    return nil, "未找到单词: " .. word
+  end
+  
+  -- 解析输出 (phonetic|translation|exchange|detail)
+  local parts = vim.split(output:gsub("\n$", ""), "|", { plain = true })
+  return {
+    phonetic = parts[1] or "",
+    translation = parts[2] or "",
+    exchange = parts[3] or "", -- 时态/复数变化
+    detail = parts[4] or "",   -- JSON 格式的详细释义和例句
+  }
+end
+
+local function show_result(word, data)
+  local lines = {}
+  local highlights = {}
+  
+  -- 标题
+  table.insert(lines, "╭─────────────────────────────────────╮")
+  table.insert(lines, string.format("│  %-33s  │", word))
+  table.insert(lines, "├─────────────────────────────────────┤")
+  
+  -- 音标
+  if data.phonetic and data.phonetic ~= "" then
+    table.insert(lines, string.format("│  音标: %s", data.phonetic))
+    table.insert(highlights, { line = #lines - 1, col = 2, len = 4, group = "Comment" })
+  end
+  
+  -- 词性+释义（translation 字段已包含词性，如 "n. 计算机..."）
+  if data.translation and data.translation ~= "" then
+    for line in data.translation:gmatch("[^\\n]+") do
+      table.insert(lines, string.format("│  %s", line))
+    end
+  end
+  
+  -- 词形变化（同根词/变形）
+  if data.exchange and data.exchange ~= "" then
+    table.insert(lines, "├─────────────────────────────────────┤")
+    table.insert(lines, "│  【词形变化】")
+    -- 解析 exchange 格式: "d:computed/ing:computing/s:computers"
+    for part in data.exchange:gmatch("[^/]+") do
+      local key, val = part:match("(.+):(.+)")
+      if key and val then
+        local label = ({d="过去式",p="过去分词",i="现在分词",s="复数",r="比较级",t="最高级",3="第三人称单数"})[key] or key
+        table.insert(lines, string.format("│    %s: %s", label, val))
+      end
+    end
+  end
+  
+  -- 详细释义和例句（解析 JSON detail 字段）
+  if data.detail and data.detail ~= "" then
+    local ok, detail_json = pcall(vim.json.decode, data.detail)
+    if ok and type(detail_json) == "table" then
+      table.insert(lines, "├─────────────────────────────────────┤")
+      table.insert(lines, "│  【例句】")
+      
+      -- 遍历词性分类（noun, verb 等）
+      for pos, defs in pairs(detail_json) do
+        if type(defs) == "table" then
+          for _, def in ipairs(defs) do
+            if def.definition then
+              table.insert(lines, string.format("│  %s: %s", pos:upper(), def.definition))
+            end
+            if def.example then
+              table.insert(lines, string.format("│    ➜ %s", def.example))
+              if def.translation then
+                table.insert(lines, string.format("│      %s", def.translation))
+              end
+            end
+            -- 限制例句数量，避免窗口过高
+            if #lines > 30 then break end
+          end
+        end
+      end
+    end
+  end
+  
+  table.insert(lines, "╰─────────────────────────────────────╯")
+  
+  -- 创建浮动窗口
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.api.nvim_buf_set_option(buf, "modifiable", false)
+  vim.api.nvim_buf_set_option(buf, "filetype", "dictionary")
+  
+  local width = math.min(60, vim.o.columns - 4)
+  local height = math.min(#lines, vim.o.lines - 4)
+  
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    col = (vim.o.columns - width) / 2,
+    row = (vim.o.lines - height) / 2,
+    style = "minimal",
+    border = "rounded",
+    title = " 离线词典 (ECDICT) ",
+    title_pos = "center",
+  })
+  
+  -- 高亮
+  vim.api.nvim_win_set_option(win, "winhl", "Normal:Normal,FloatBorder:FloatBorder")
+  -- 添加简单高亮（可选）
+  local ns = vim.api.nvim_create_namespace("ecdict")
+  for _, hl in ipairs(highlights) do
+    vim.api.nvim_buf_add_highlight(buf, ns, hl.group, hl.line, hl.col, hl.col + hl.len)
+  end
+  
+  -- 按 q 关闭
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>close<cr>", { noremap = true, silent = true })
+  vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>close<cr>", { noremap = true, silent = true })
+end
+
+-- 主函数
+local function translate(mode)
+  local word
+  if mode == "v" then
+    -- 获取选中文本
+    local old_reg = vim.fn.getreg('"')
+    vim.cmd('normal! ""y')
+    word = vim.fn.getreg('"'):gsub("^%s*(.-)%s*$", "%1") -- trim
+    vim.fn.setreg('"', old_reg)
+  else
+    word = vim.fn.expand("<cword>")
+  end
+  
+  if not word or word == "" then return end
+  
+  vim.notify("查询中: " .. word, vim.log.levels.INFO, { timeout = 500 })
+  
+  -- 异步查询避免卡顿
+  vim.defer_fn(function()
+    local data, err = query_ecdict(word:lower())
+    if not data then
+      vim.notify(err or "查询失败", vim.log.levels.WARN)
+      return
+    end
+    
+    vim.schedule(function()
+      show_result(word, data)
+    end)
+  end, 10)
+end
+
+-- 快捷键
+vim.keymap.set("n", "mm", function() translate("n") end, { desc = "离线词典查单词" })
+vim.keymap.set("v", "mm", function() translate("v") end, { desc = "离线词典查选中文本" })
+vim.keymap.set("n", "mi", function()
+  vim.ui.input({ prompt = "输入单词: " }, function(input)
+    if input then translate("n", input) end
+  end)
+end, { desc = "离线词典输入查询" })
+```
+
+### 3. 效果预览（查询 `computer`）
+
+```
+╭─────────────────────────────────────╮
+│  computer                           │
+├─────────────────────────────────────┤
+│  音标: /kəm'pju:tə(r)/
+│  n. 计算机;电脑;电子计算机
+│  [计] 计算机;电脑
+├─────────────────────────────────────┤
+│  【词形变化】
+│    复数: computers
+│    过去式: computered
+│    现在分词: computering
+├─────────────────────────────────────┤
+│  【例句】
+│  NOUN: an expert at calculation
+│    ➜ He is a computer expert.
+│      他是一位计算机专家。
+╰─────────────────────────────────────╯
+```
+
+### 4. 数据库特点
+
+- **音标**：KK/IPA 音标（如 `/kəm'pju:tə(r)/`）
+- **词性**：`n.` `v.` `adj.` 等前缀已包含在释义中
+- **用法/搭配**：部分词条包含 `detail` 字段的用法说明
+- **例句**：包含双语例句（英文+中文翻译）
+- **同根词/变形**：`exchange` 字段包含时态、复数、分词等变化形式
+
+### 5. 与 GoldenDict 对比
+
+| 特性 | ECDICT + Nvim | GoldenDict |
+|------|---------------|------------|
+| **速度** | ⚡ 毫秒级（SQLite） | 较快 |
+| **例句质量** | 基础例句 | 朗文/牛津例句更地道 |
+| **词根词缀** | 词形变化 | 可能更详细（取决于词典文件）|
+| **内存占用** | 仅 SQLite 文件 (~150MB) | 需运行 GoldenDict 程序 |
+| **界面** | Neovim 浮动窗口 | 独立 GUI 窗口 |
+
+**建议**：先试用 ECDICT，如果例句质量不满足，再下载 **朗文/牛津 MDX 词典** 用 GoldenDict 查看。
+
+现在执行第一步下载命令，然后重启 nvim 按 `mm` 即可离线查词，**无需 AI 模型，无需显存**。

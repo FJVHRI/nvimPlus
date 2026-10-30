@@ -1,0 +1,23 @@
+[1] impl=rust sorts[1]=function lsp_offset=nil
+[2] snippets kept=3 priority=9
+[2] lsp kept=2 priority=99
+[2] buffer kept=2 priority=1
+[2] dictionary kept=4 priority=9
+[3] A 'in' fuzzy ok=true
+    1 in           src=Buffer    prio=1 score=52 bonus=0
+    2 initialise   src=LSP       prio=99 score=44 bonus=0
+    3 inline       src=LSP       prio=99 score=44 bonus=0
+    4 initial      src=Dict      prio=9 score=44 bonus=2
+    5 initially    src=Dict      prio=9 score=44 bonus=0
+    6 initiated    src=Dict      prio=9 score=44 bonus=0
+    7 initiative   src=Dict      prio=9 score=44 bonus=0
+    8 include      src=Buffer    prio=1 score=44 bonus=0
+    9 cin          src=Snippets  prio=9 score=29 bonus=0
+    10 cinc         src=Snippets  prio=9 score=29 bonus=0
+    11 cinr         src=Snippets  prio=9 score=29 bonus=0
+[4] B 'int' fuzzy ok=true
+    1 int          src=Buffer    prio=1 score=70
+    2 int          src=Snippets  prio=9 score=67
+    3 int8_t       src=LSP       prio=99 score=60
+    4 inline       src=LSP       prio=99 score=39
+    5 main         src=Snippets  prio=9 score=26

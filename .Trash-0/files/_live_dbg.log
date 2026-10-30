@@ -1,0 +1,22 @@
+[1] resolved fuzzy.sorts:
+    [1] function function: 0x7f943f3b18c0
+    [2] string exact
+    [3] string score
+    [4] string sort_text
+    [5] string kind
+    [6] string label
+[1] sources.transform_items = function: 0x7f943f3b1bd8
+[1] implementation = lua
+[2] buffer ready, filetype set=true
+[2] keyword='i'
+[3] dictionary kept=4
+    1 initial      tier=0 cost=6 bonus=0
+    2 initially    tier=0 cost=8 bonus=0
+    3 initiated    tier=0 cost=8 bonus=0
+    4 initiative   tier=0 cost=9 bonus=0
+[3] snippets kept=4
+    1 cin          tier=1 cost=1 bonus=0
+    2 cin          tier=1 cost=1 bonus=0
+    3 cinc         tier=1 cost=1 bonus=0
+    4 cinr         tier=1 cost=1 bonus=0
+RUN ERROR: ...y/blink.cmp/lua/blink/cmp/completion/trigger/context.lua:144: attempt to perform arithmetic on local 'num' (a table value)

@@ -1,0 +1,609 @@
+###########################################################################
+#                         UltiSnips: Python Snippets                      #
+###########################################################################
+
+priority -50
+
+# ---------------------------------------------------------------------------
+# Variables & types
+# ---------------------------------------------------------------------------
+snippet var "Variable assignment" b
+${1:name} = ${2:value}
+endsnippet
+
+snippet typeh "Variable with type hint" b
+${1:name}: ${2:type} = ${3:value}
+endsnippet
+
+snippet const "Constant (uppercase)" b
+${1:NAME} = ${2:value}
+endsnippet
+
+snippet list "List literal" b
+${1:name} = [${2:items}]
+endsnippet
+
+snippet dict "Dictionary literal" b
+${1:name} = {${2:key}: ${3:value}}
+endsnippet
+
+snippet tuple "Tuple literal" b
+${1:name} = (${2:items},)
+endsnippet
+
+snippet set "Set literal" b
+${1:name} = {${2:items}}
+endsnippet
+
+snippet fstr "F-string"
+f"${1:template} ${2:{expression}}"
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Functions
+# ---------------------------------------------------------------------------
+snippet def "Function definition" b
+def ${1:function_name}(${2:parameters}):
+	"""${3:Docstring}"""
+	${0}
+endsnippet
+
+snippet defr "Function with return type hint" b
+def ${1:function_name}(${2:parameters}) -> ${3:return_type}:
+	"""${4:Docstring}"""
+	${0}
+	return ${5:value}
+endsnippet
+
+snippet lambda "Lambda function"
+lambda ${1:params}: ${2:expression}
+endsnippet
+
+snippet args "Function with *args, **kwargs" b
+def ${1:function_name}(*args, **kwargs):
+	${0}
+endsnippet
+
+snippet decorator "Decorator function" b
+def ${1:decorator_name}(func):
+	def wrapper(*args, **kwargs):
+		${0}
+		return func(*args, **kwargs)
+	return wrapper
+endsnippet
+
+snippet asyncdef "Async function definition" b
+async def ${1:function_name}(${2:parameters}):
+	"""${3:Docstring}"""
+	${0}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Classes & OOP
+# ---------------------------------------------------------------------------
+snippet class "Class with __init__" b
+class ${1:ClassName}:
+	"""${2:Class docstring}"""
+
+	def __init__(self, ${3:parameters}):
+		${0}
+endsnippet
+
+snippet classext "Class with inheritance" b
+class ${1:ClassName}(${2:ParentClass}):
+	"""${3:Class docstring}"""
+
+	def __init__(self, ${4:parameters}):
+		super().__init__(${5:parent_params})
+		${0}
+endsnippet
+
+snippet dataclass "Dataclass" b
+from dataclasses import dataclass
+
+@dataclass
+class ${1:ClassName}:
+	"""${2:Class docstring}"""
+	${3:field1}: ${4:type1}
+	${5:field2}: ${6:type2} = ${7:default}
+	${0}
+endsnippet
+
+snippet frozendc "Frozen dataclass" b
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ${1:ClassName}:
+	"""${2:Class docstring}"""
+	${3:field1}: ${4:type1}
+	${5:field2}: ${6:type2} = ${7:default}
+	${0}
+endsnippet
+
+snippet defm "Instance method" b
+def ${1:method_name}(self, ${2:parameters}):
+	"""${3:Docstring}"""
+	${0}
+endsnippet
+
+snippet staticmethod "Static method" b
+@staticmethod
+def ${1:method_name}(${2:parameters}):
+	"""${3:Docstring}"""
+	${0}
+endsnippet
+
+snippet classmethod "Class method" b
+@classmethod
+def ${1:method_name}(cls, ${2:parameters}):
+	"""${3:Docstring}"""
+	${0}
+endsnippet
+
+snippet property "Property with getter/setter" b
+@property
+def ${1:property_name}(self):
+	"""${2:Docstring}"""
+	return self._$1
+
+@$1.setter
+def $1(self, value):
+	self._$1 = value
+endsnippet
+
+snippet init "__init__ method" b
+def __init__(self, ${1:parameters}):
+	${0}
+endsnippet
+
+snippet repr "__repr__ method" b
+def __repr__(self):
+	return f"{self.__class__.__name__}(${0})"
+endsnippet
+
+snippet str "__str__ method" b
+def __str__(self):
+	return ${0}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Control flow
+# ---------------------------------------------------------------------------
+snippet if "If statement" b
+if ${1:condition}:
+	${VISUAL}${0}
+endsnippet
+
+snippet ifelse "If-else statement" b
+if ${1:condition}:
+	${2:${VISUAL}}
+else:
+	${0}
+endsnippet
+
+snippet elif "Elif statement" b
+elif ${1:condition}:
+	${VISUAL}${0}
+endsnippet
+
+snippet else "Else block" b
+else:
+	${VISUAL}${0}
+endsnippet
+
+snippet tern "Ternary operator"
+${1:true_value} if ${2:condition} else ${3:false_value}
+endsnippet
+
+snippet match "Match-case (Python 3.10+)" b
+match ${1:expression}:
+	case ${2:pattern1}:
+		${0}
+	case ${3:pattern2}:
+		pass
+	case _:
+		pass
+endsnippet
+
+snippet for "For loop" b
+for ${1:item} in ${2:iterable}:
+	${0}
+endsnippet
+
+snippet forenum "For loop with enumerate" b
+for ${1:index}, ${2:item} in enumerate(${3:iterable}):
+	${0}
+endsnippet
+
+snippet forzip "For loop with zip" b
+for ${1:item1}, ${2:item2} in zip(${3:iterable1}, ${4:iterable2}):
+	${0}
+endsnippet
+
+snippet forr "For loop with range" b
+for ${1:i} in range(${2:start}, ${3:end}):
+	${0}
+endsnippet
+
+snippet while "While loop" b
+while ${1:condition}:
+	${0}
+endsnippet
+
+snippet try "Try-except block" b
+try:
+	${1:${VISUAL}}
+except ${2:Exception} as ${3:e}:
+	${0}
+endsnippet
+
+snippet tryf "Try-except-finally" b
+try:
+	${1:${VISUAL}}
+except ${2:Exception} as ${3:e}:
+	pass
+finally:
+	${0}
+endsnippet
+
+snippet trye "Try-except-else" b
+try:
+	${1:${VISUAL}}
+except ${2:Exception} as ${3:e}:
+	pass
+else:
+	${0}
+endsnippet
+
+snippet raise "Raise exception"
+raise ${1:Exception}("${2:message}")
+endsnippet
+
+snippet with "With statement" b
+with ${1:context_manager} as ${2:var}:
+	${0}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Comprehensions & generators
+# ---------------------------------------------------------------------------
+snippet lc "List comprehension"
+[${1:expression} for ${2:item} in ${3:iterable}]
+endsnippet
+
+snippet lci "List comprehension with condition"
+[${1:expression} for ${2:item} in ${3:iterable} if ${4:condition}]
+endsnippet
+
+snippet dc "Dict comprehension"
+{${1:key}: ${2:value} for ${3:item} in ${4:iterable}}
+endsnippet
+
+snippet sc "Set comprehension"
+{${1:expression} for ${2:item} in ${3:iterable}}
+endsnippet
+
+snippet gen "Generator expression"
+(${1:expression} for ${2:item} in ${3:iterable})
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Built-in functions & operations
+# ---------------------------------------------------------------------------
+snippet print "Print statement"
+print(${1:message})
+endsnippet
+
+snippet printf "Print with f-string"
+print(f"${1:message} ${2:{expression}}")
+endsnippet
+
+snippet input "Input from user"
+${1:var} = input("${2:prompt}: ")
+endsnippet
+
+snippet len "len(...)"
+len(${1:iterable})
+endsnippet
+
+snippet range "range(...)"
+range(${1:start}, ${2:end}, ${3:step})
+endsnippet
+
+snippet enumerate "enumerate(...)"
+enumerate(${1:iterable}, ${2:start})
+endsnippet
+
+snippet zip "zip(...)"
+zip(${1:iterable1}, ${2:iterable2})
+endsnippet
+
+snippet map "map(...)"
+map(${1:function}, ${2:iterable})
+endsnippet
+
+snippet filter "filter(...)"
+filter(${1:function}, ${2:iterable})
+endsnippet
+
+snippet sorted "sorted(...)"
+sorted(${1:iterable}, key=${2:key}, reverse=${3:False})
+endsnippet
+
+snippet sum "sum(...)"
+sum(${1:iterable})
+endsnippet
+
+snippet max "max(...)"
+max(${1:iterable})
+endsnippet
+
+snippet min "min(...)"
+min(${1:iterable})
+endsnippet
+
+snippet any "any(...)"
+any(${1:iterable})
+endsnippet
+
+snippet all "all(...)"
+all(${1:iterable})
+endsnippet
+
+# ---------------------------------------------------------------------------
+# File I/O
+# ---------------------------------------------------------------------------
+snippet fileread "Read entire file" b
+with open("${1:filename}", "r") as f:
+	${2:content} = f.read()
+	${0}
+endsnippet
+
+snippet filereadlines "Read file lines into list" b
+with open("${1:filename}", "r") as f:
+	${2:lines} = f.readlines()
+	${0}
+endsnippet
+
+snippet filewrite "Write to file (overwrite)" b
+with open("${1:filename}", "w") as f:
+	f.write(${2:content})
+	${0}
+endsnippet
+
+snippet fileappend "Append to file" b
+with open("${1:filename}", "a") as f:
+	f.write(${2:content})
+	${0}
+endsnippet
+
+snippet jsonload "Load JSON from file" b
+import json
+
+with open("${1:filename}.json", "r") as f:
+	${2:data} = json.load(f)
+	${0}
+endsnippet
+
+snippet jsondump "Dump JSON to file" b
+import json
+
+with open("${1:filename}.json", "w") as f:
+	json.dump(${2:data}, f, indent=${3:4})
+	${0}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Async
+# ---------------------------------------------------------------------------
+snippet asyncmain "Async main function" b
+import asyncio
+
+async def main():
+	${0}
+
+if __name__ == "__main__":
+	asyncio.run(main())
+endsnippet
+
+snippet await "Await coroutine"
+${1:result} = await ${2:coroutine}
+endsnippet
+
+snippet gather "asyncio.gather"
+await asyncio.gather(${1:coro1}, ${2:coro2})
+endsnippet
+
+snippet asleep "asyncio.sleep"
+await asyncio.sleep(${1:seconds})
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Imports
+# ---------------------------------------------------------------------------
+snippet import "Import module"
+import ${1:module}
+endsnippet
+
+snippet fromimport "from ... import ..."
+from ${1:module} import ${2:name}
+endsnippet
+
+snippet importas "Import module with alias"
+import ${1:module} as ${2:alias}
+endsnippet
+
+snippet importnp "import numpy as np"
+import numpy as np
+endsnippet
+
+snippet importpd "import pandas as pd"
+import pandas as pd
+endsnippet
+
+snippet importplt "import matplotlib.pyplot as plt"
+import matplotlib.pyplot as plt
+endsnippet
+
+snippet importreq "import requests"
+import requests
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Typing
+# ---------------------------------------------------------------------------
+snippet typing "Import common typing types"
+from typing import ${1:List, Dict, Tuple, Optional, Any}
+endsnippet
+
+snippet optional "Optional[type]"
+Optional[${1:type}]
+endsnippet
+
+snippet listtype "List[type]"
+List[${1:type}]
+endsnippet
+
+snippet dicttype "Dict[key, value]"
+Dict[${1:key_type}, ${2:value_type}]
+endsnippet
+
+snippet tupletype "Tuple[type1, type2]"
+Tuple[${1:type1}, ${2:type2}]
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Boilerplate & patterns
+# ---------------------------------------------------------------------------
+snippet main "Main function boilerplate" b
+def main():
+	${0}
+
+if __name__ == "__main__":
+	main()
+endsnippet
+
+snippet ifname "if __name__ == '__main__'" b
+if __name__ == "__main__":
+	${0}
+endsnippet
+
+snippet docstring "Google-style docstring" b
+"""${1:One-line summary}"""
+"""
+${2:Extended description}
+
+Args:
+	${3:param}: ${4:description}
+
+Returns:
+	${5:type}: ${6:description}
+
+Raises:
+	${7:Exception}: ${8:description}
+"""
+endsnippet
+
+snippet timer "Time code execution" b
+import time
+
+start_time = time.time()
+${0}
+end_time = time.time()
+print(f"Elapsed time: {end_time - start_time:.4f} seconds")
+endsnippet
+
+snippet timerctx "Timer context manager" b
+from contextlib import contextmanager
+import time
+
+@contextmanager
+def timer(label="Elapsed time"):
+	start_time = time.time()
+	yield
+	end_time = time.time()
+	print(f"{label}: {end_time - start_time:.4f} seconds")
+endsnippet
+
+snippet singleton "Singleton pattern" b
+class Singleton:
+	_instance = None
+
+	def __new__(cls, *args, **kwargs):
+		if not cls._instance:
+			cls._instance = super().__new__(cls)
+		return cls._instance
+endsnippet
+
+snippet pdb "PDB debugger"
+import pdb; pdb.set_trace()
+endsnippet
+
+snippet breakpoint "breakpoint()"
+breakpoint()
+endsnippet
+
+snippet assert "assert ..."
+assert ${1:condition}, "${2:message}"
+endsnippet
+
+snippet lru_cache "@functools.lru_cache" b
+from functools import lru_cache
+
+@lru_cache(maxsize=${1:None})
+def ${2:function_name}(${3:parameters}):
+	${0}
+endsnippet
+
+snippet pathlib "pathlib Path"
+from pathlib import Path
+
+${1:path} = Path("${2:.}")
+endsnippet
+
+snippet logging "logging basicConfig" b
+import logging
+
+logging.basicConfig(
+	level=logging.${1:INFO},
+	format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+${0}
+endsnippet
+
+snippet argparse "argparse skeleton" b
+import argparse
+
+parser = argparse.ArgumentParser(description="${1:description}")
+parser.add_argument("${2:positional}", type=${3:str}, help="${4:help text}")
+parser.add_argument("--${5:optional}", type=${6:str}, default="${7:default}", help="${8:help text}")
+args = parser.parse_args()
+${0}
+endsnippet
+
+snippet contextmanager "Context manager class" b
+class ${1:ContextManagerName}:
+	def __enter__(self):
+		${0}
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		pass
+endsnippet
+
+snippet namedtuple "collections.namedtuple" b
+from collections import namedtuple
+
+${1:Point} = namedtuple("$1", ["${2:x}", "${3:y}"])
+endsnippet
+
+snippet typeddict "TypedDict (Python 3.8+)" b
+from typing import TypedDict
+
+class ${1:DictName}(TypedDict):
+	${2:key}: ${3:type}
+	${0}
+endsnippet
+
+# vim:ft=snippets:

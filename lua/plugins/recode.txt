@@ -1,0 +1,22 @@
+╰─❯ ll
+.rwxrwxr-x   98 a 17 Dec 20:25  a.c
+.rwxrwxr-x  438 a 17 Dec 20:25  ai.lua
+.rw-rw-r--  16k a 20 Dec 10:15  blink.lua
+.rwxrwxr-x 3.4k a 17 Dec 20:25  c.lua
+.rwxrwxr-x 1.0k a 17 Dec 20:25  coc.lua
+.rwxrwxr-x  806 a 17 Dec 20:44 󰡯 colorscheme
+.rw-rw-r--  238 a 17 Dec 20:45  colorscheme.lua
+.rwxrwxr-x 7.2k a 17 Dec 20:43  compiler.lua
+.rwxrwxr-x    0 a 17 Dec 20:25  compiler.luacd
+.rwxrwxr-x  527 a 17 Dec 20:25  cuda.lua
+.rwxrwxr-x 7.4k a 17 Dec 20:25  editor.lua
+.rwxrwxr-x 6.8k a 17 Dec 20:25  example.lua
+.rw-rw-r-- 2.0k a 17 Dec 20:20 󰡯 indent-blanklin
+.rw-rw-r-- 1.6k a 17 Dec 20:20  indent-blankline.lua
+.rwxrwxr-x 1.5k a 17 Dec 20:25  integrations.lua
+.rwxrwxr-x  807 a 17 Dec 20:25  lsp.lua
+.rwxrwxr-x   80 a 19 Dec 19:03  noice.lua
+.rwxrwxr-x  712 a 17 Dec 20:25  refactoring.lua
+.rwxrwxr-x 2.2k a 20 Dec 10:12  treesitter.lua
+.rwxrwxr-x 7.0k a 17 Dec 20:40  ui.lua
+

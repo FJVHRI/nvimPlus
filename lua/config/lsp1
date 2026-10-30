@@ -1,0 +1,102 @@
+-- config/lsp.lua  · 原生 LSP 加强版（Neovim 0.12+）
+----------------------------------------------------------------
+-- 1. 统一能力集（blink-cmp）
+local capabilities = require("blink.cmp").get_lsp_capabilities()
+
+-- 2. 统一 on_attach
+local function on_attach(client, bufnr)
+  local map = function(mode, lhs, rhs, desc)
+    vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+  end
+
+  -- 你原来的映射
+  map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
+  map("n", "gr", vim.lsp.buf.references, "Goto References")
+  map("n", "K", vim.lsp.buf.hover, "Hover")
+  map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
+  map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
+
+  -- 额外福利
+  map("n", "<leader>pd", vim.diagnostic.open_float, "Line Diagnostic")
+  map("n", "[d", vim.diagnostic.goto_prev, "Prev Diagnostic")
+  map("n", "]d", vim.diagnostic.goto_next, "Next Diagnostic")
+end
+
+-- 3. 通用服务器默认模板
+local server_defaults = {
+  capabilities = capabilities,
+  on_attach = on_attach,
+}
+
+-- 4. 手动服务器列表（保持你原来的，想加就加）
+local servers = {
+  clangd = {
+    cmd = { "clangd", "--background-index", "--clang-tidy" },
+    filetypes = { "c", "cpp", "cuda", "objc", "objcpp" },
+    root_markers = { "compile_commands.json", ".git" },
+  },
+  pyright = {
+    cmd = { "pyright-langserver", "--stdio" },
+    filetypes = { "python" },
+    root_markers = { "pyproject.toml", "setup.py", ".git" },
+  },
+  ts_ls = {
+    cmd = { "typescript-language-server", "--stdio" },
+    filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+    root_markers = { "package.json", "tsconfig.json", ".git" },
+  },
+  html = { cmd = { "html-languageserver", "--stdio" }, filetypes = { "html" } },
+  cssls = { cmd = { "css-languageserver", "--stdio" }, filetypes = { "css", "scss", "less" } },
+  emmet_language_server = {
+    cmd = { "emmet-language-server", "--stdio" },
+    filetypes = { "html", "css", "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  },
+  gopls = { cmd = { "gopls" }, filetypes = { "go", "gomod", "gowork", "gotmpl" } },
+  rust_analyzer = { cmd = { "rust-analyzer" }, filetypes = { "rust" } },
+  jdtls = { cmd = { "jdtls" }, filetypes = { "java" } },
+}
+
+-- 5. 一键应用默认模板 + 启用
+for name, opts in pairs(servers) do
+  vim.lsp.config(name, vim.tbl_deep_extend("force", server_defaults, opts))
+  vim.lsp.enable(name)
+end
+
+-- 6. 悬浮窗美化（可选）
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
+  border = "rounded",
+  max_width = 80,
+})
+vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, {
+  border = "rounded",
+})
+
+-- 7. 诊断样式（如果你已在 plugins/lsp.lua 里设置了，可删）
+local signs = { Error = "", Warn = "", Hint = "󰌶", Info = "" }
+for type, icon in pairs(signs) do
+  local hl = "DiagnosticSign" .. type
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+vim.diagnostic.config({
+  underline = false,
+  signs = true,
+  virtual_text = { spacing = 4, prefix = "●" },
+  float = { border = "rounded" },
+  severity_sort = true,
+  update_in_insert = false,
+})
+
+-- 8. Mason 自动装 + 自动启用（可选，懒人专用）
+-- 需要 mason-lspconfig.nvim 插件
+local ok, mlsp = pcall(require, "mason-lspconfig")
+if ok then
+  mlsp.setup({
+    ensure_installed = vim.tbl_keys(servers), -- 只装上面列表里的
+    handlers = {
+      function(server)
+        -- 已经手动 vim.lsp.config 过了，这里直接启用
+        vim.lsp.enable(server)
+      end,
+    },
+  })
+end

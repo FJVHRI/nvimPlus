@@ -1,0 +1,12 @@
+vim.defer_fn(function()
+  pcall(require, "lazy")  -- 确保 lazy 已就位
+  local ok = pcall(require("lazy").load, { plugins = { "noice.nvim" } })
+  vim.defer_fn(function()
+    local C = require("noice.config").options
+    print("cmdline.view=" .. tostring(C.cmdline and C.cmdline.view))
+    print("bottom_search=" .. tostring(C.presets and C.presets.bottom_search))
+    print("search_down.view=" .. tostring(C.cmdline and C.cmdline.format and C.cmdline.format.search_down and C.cmdline.format.search_down.view))
+    print("cmdline_popup pos=" .. (C.views and C.views.cmdline_popup and C.views.cmdline_popup.position and vim.inspect(C.views.cmdline_popup.position) or "nil"))
+    vim.cmd("qa!")
+  end, 300)
+end, 200)

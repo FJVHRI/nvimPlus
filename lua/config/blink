@@ -1,0 +1,11 @@
+-- config/blink.lua
+return {
+  "saghen/blink.cmp",
+  version = "*",
+  opts = {
+    -- 默认源 + 外挂 Coc 源（由 bridge 注入）
+    sources = { default = { "lsp", "path", "snippets", "buffer", "coc" } },
+    keymap = { preset = "default" }, -- 仍用 blink 键位
+    appearance = { use_nvim_cmp_as_default = true },
+  },
+}

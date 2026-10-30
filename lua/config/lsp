@@ -1,0 +1,109 @@
+-- config/lsp.lua
+-- Neovim 0.12 原生 LSP 配置（无需 nvim-lspconfig）
+
+-- 统一 on_attach 逻辑
+local function on_attach(_, bufnr)
+  -- 示例：常用的 keymap
+  local map = function(mode, lhs, rhs, desc)
+    vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+  end
+
+  map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
+  map("n", "gr", vim.lsp.buf.references, "Goto References")
+  map("n", "K", vim.lsp.buf.hover, "Hover")
+  map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
+  map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
+end
+
+-- 统一 capabilities（兼容 nvim-cmp 如果你在用）
+--local capabilities = vim.lsp.protocol.make_client_capabilities()
+-- 如果你用了 nvim-cmp，取消下一行注释
+-- capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
+
+-- 配置各 LSP 服务器
+vim.lsp.config("clangd", {
+  priority = 100,
+  cmd = { "clangd" },
+  filetypes = { "c", "cpp", "cuda", "objc", "objcpp" },
+  root_markers = { "compile_commands.json", ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("pyright", {
+  cmd = { "pyright-langserver", "--stdio" },
+  filetypes = { "python" },
+  root_markers = { "pyproject.toml", "setup.py", ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("ts_ls", { -- 原 tsserver
+  cmd = { "typescript-language-server", "--stdio" },
+  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  root_markers = { "package.json", "tsconfig.json", ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("html", {
+  cmd = { "html-languageserver", "--stdio" },
+  filetypes = { "html" },
+  root_markers = { ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("cssls", {
+  cmd = { "css-languageserver", "--stdio" },
+  filetypes = { "css", "scss", "less" },
+  root_markers = { ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+vim.lsp.config("emmet_language_server", {
+  cmd = { "emmet-language-server", "--stdio" },
+  filetypes = { "html", "css", "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  root_markers = { ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- Go
+vim.lsp.config("gopls", {
+  cmd = { "gopls" },
+  filetypes = { "go", "gomod", "gowork", "gotmpl" },
+  root_markers = { "go.mod", ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- Rust
+vim.lsp.config("rust_analyzer", {
+  cmd = { "rust-analyzer" },
+  filetypes = { "rust" },
+  root_markers = { "Cargo.toml", ".git" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- Java
+vim.lsp.config("jdtls", {
+  cmd = { "jdtls" },
+  filetypes = { "java" },
+  root_markers = { ".git", "pom.xml", "build.gradle" },
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- 替换掉原来的 vim.lsp.enable_all()
+vim.lsp.enable("clangd")
+vim.lsp.enable("pyright")
+vim.lsp.enable("ts_ls")
+vim.lsp.enable("html")
+vim.lsp.enable("cssls")
+vim.lsp.enable("emmet_language_server")
+vim.lsp.enable("gopls")
+vim.lsp.enable("rust_analyzer")
+vim.lsp.enable("jdtls")

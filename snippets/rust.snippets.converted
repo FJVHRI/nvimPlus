@@ -1,0 +1,440 @@
+###########################################################################
+#                          UltiSnips: Rust Snippets                       #
+###########################################################################
+
+priority -50
+
+# ---------------------------------------------------------------------------
+# Functions
+# ---------------------------------------------------------------------------
+snippet fn "function definition" b
+fn ${1:name}(${2}) ${3}{
+	${0}
+}
+endsnippet
+
+snippet fnr "function with return type" b
+fn ${1:name}(${2}) -> ${3:ReturnType} {
+	${0}
+}
+endsnippet
+
+snippet pfn "public function" b
+pub fn ${1:name}(${2}) ${3}{
+	${0}
+}
+endsnippet
+
+snippet pfnr "public function with return type" b
+pub fn ${1:name}(${2}) -> ${3:ReturnType} {
+	${0}
+}
+endsnippet
+
+snippet afn "async function" b
+async fn ${1:name}(${2}) -> ${3:ReturnType} {
+	${0}
+}
+endsnippet
+
+snippet closure "closure"
+|${1:params}| ${2:{ ${0} }}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Variables
+# ---------------------------------------------------------------------------
+snippet let "immutable variable" b
+let ${1} = ${2};
+endsnippet
+
+snippet letm "mutable variable" b
+let mut ${1} = ${2};
+endsnippet
+
+snippet lett "variable with type" b
+let ${1:name}: ${2:Type} = ${3:value};
+endsnippet
+
+snippet letmt "mutable variable with type" b
+let mut ${1:name}: ${2:Type} = ${3:value};
+endsnippet
+
+snippet const "const" b
+const ${1:NAME}: ${2:Type} = ${3:value};
+endsnippet
+
+snippet static "static" b
+static ${1:NAME}: ${2:Type} = ${3:value};
+endsnippet
+
+snippet type "type alias" b
+type ${1:Name} = ${2:Type};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Control flow
+# ---------------------------------------------------------------------------
+snippet if "if statement" b
+if ${1} {
+	${0}
+}
+endsnippet
+
+snippet ifelse "if-else" b
+if ${1} {
+	${2}
+} else {
+	${0}
+}
+endsnippet
+
+snippet elif "else if" b
+else if ${1} {
+	${0}
+}
+endsnippet
+
+snippet iflet "if let ... =" b
+if let ${1:Some(${2:x})} = ${3:expr} {
+	${0}
+}
+endsnippet
+
+snippet ifletelse "if let ... else" b
+if let ${1:Some(${2:x})} = ${3:expr} {
+	${4}
+} else {
+	${0}
+}
+endsnippet
+
+snippet whilelet "while let ... =" b
+while let ${1:Some(${2:x})} = ${3:expr} {
+	${0}
+}
+endsnippet
+
+snippet for "for loop" b
+for ${1} in ${2} {
+	${0}
+}
+endsnippet
+
+snippet while "while loop" b
+while ${1} {
+	${0}
+}
+endsnippet
+
+snippet loop "loop" b
+loop {
+	${0}
+}
+endsnippet
+
+snippet match "match expression" b
+match ${1} {
+	${2:_} => ${3:todo!()},
+}
+endsnippet
+
+snippet matchopt "match Option<T>" b
+match ${1:opt} {
+	Some(${2:x}) => ${3},
+	None => ${0},
+}
+endsnippet
+
+snippet matchres "match Result<T,E>" b
+match ${1:res} {
+	Ok(${2:x}) => ${3},
+	Err(${4:e}) => ${0},
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Types / structs / enums
+# ---------------------------------------------------------------------------
+snippet st "struct definition" b
+struct ${1} {
+	${0}
+}
+endsnippet
+
+snippet pst "pub struct" b
+pub struct ${1} {
+	${0}
+}
+endsnippet
+
+snippet stt "tuple struct" b
+struct ${1:Name}(${2:Type});
+endsnippet
+
+snippet enum "enum definition" b
+enum ${1} {
+	${0}
+}
+endsnippet
+
+snippet penum "pub enum" b
+pub enum ${1} {
+	${0}
+}
+endsnippet
+
+snippet impl "impl block" b
+impl ${1} {
+	${0}
+}
+endsnippet
+
+snippet implfor "impl Trait for Type" b
+impl ${1:Trait} for ${2:Type} {
+	${0}
+}
+endsnippet
+
+snippet trait "trait definition" b
+trait ${1:Name} {
+	${0}
+}
+endsnippet
+
+snippet ptrait "pub trait" b
+pub trait ${1:Name} {
+	${0}
+}
+endsnippet
+
+snippet der "#[derive(...)]"
+#[derive(${1:Debug})]
+endsnippet
+
+snippet derfull "#[derive(Debug, Clone, PartialEq)]"
+#[derive(Debug, Clone, PartialEq, Eq)]
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Common types
+# ---------------------------------------------------------------------------
+snippet opt "Option<T>"
+Option<${1:T}>
+endsnippet
+
+snippet res "Result<T, E>"
+Result<${1:T}, ${2:E}>
+endsnippet
+
+snippet box "Box::new()"
+Box::new(${1})
+endsnippet
+
+snippet vec "Vec::new()"
+Vec::new()
+endsnippet
+
+snippet vecm "vec![]"
+vec![${1}]
+endsnippet
+
+snippet rc "Rc::new()"
+Rc::new(${1})
+endsnippet
+
+snippet arc "Arc::new()"
+Arc::new(${1})
+endsnippet
+
+snippet mutex "Mutex::new()"
+Mutex::new(${1})
+endsnippet
+
+snippet rwlock "RwLock::new()"
+RwLock::new(${1})
+endsnippet
+
+snippet cell "Cell::new()"
+Cell::new(${1})
+endsnippet
+
+snippet refcell "RefCell::new()"
+RefCell::new(${1})
+endsnippet
+
+snippet hashmap "HashMap::new()"
+HashMap::new()
+endsnippet
+
+snippet hashset "HashSet::new()"
+HashSet::new()
+endsnippet
+
+snippet sf "String::from"
+String::from("${1}")
+endsnippet
+
+snippet ref "& reference"
+&${1:expr}
+endsnippet
+
+snippet refm "&mut reference"
+&mut ${1:expr}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Macros & output
+# ---------------------------------------------------------------------------
+snippet pri "print! macro"
+print!("${1}");
+endsnippet
+
+snippet pln "println! macro"
+println!("${1}");
+endsnippet
+
+snippet eprintln "eprintln! macro"
+eprintln!("${1}");
+endsnippet
+
+snippet dbg "dbg! macro"
+dbg!(${1})
+endsnippet
+
+snippet todo "todo!()"
+todo!()
+endsnippet
+
+snippet unimpl "unimplemented!()"
+unimplemented!()
+endsnippet
+
+snippet unreach "unreachable!()"
+unreachable!()
+endsnippet
+
+snippet panic "panic!()"
+panic!("${1:message}");
+endsnippet
+
+snippet assert "assert!"
+assert!(${1:condition});
+endsnippet
+
+snippet asserteq "assert_eq!"
+assert_eq!(${1:left}, ${2:right});
+endsnippet
+
+snippet assertne "assert_ne!"
+assert_ne!(${1:left}, ${2:right});
+endsnippet
+
+snippet macro "macro_rules! definition" b
+macro_rules! ${1} {
+	(${2}) => (
+		${3}
+	)
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Modules / imports
+# ---------------------------------------------------------------------------
+snippet mod "module" b
+mod ${1:name} {
+	${0}
+}
+endsnippet
+
+snippet pmod "pub mod" b
+pub mod ${1:name} {
+	${0}
+}
+endsnippet
+
+snippet use "use ..."
+use ${1:std::collections::HashMap};
+endsnippet
+
+snippet useas "use ... as ..."
+use ${1:std::collections::HashMap} as ${2:HMap};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Testing
+# ---------------------------------------------------------------------------
+snippet test "#[test] fn" b
+#[test]
+fn ${1:test_name}() {
+	${0}
+}
+endsnippet
+
+snippet modtest "test module" b
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn ${1:test_name}() {
+		${0}
+	}
+}
+endsnippet
+
+snippet shouldpanic "#[should_panic]" b
+#[test]
+#[should_panic]
+fn ${1:test_name}() {
+	${0}
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Main & boilerplate
+# ---------------------------------------------------------------------------
+snippet main "fn main()" b
+fn main() {
+	${0}
+}
+endsnippet
+
+snippet mainres "fn main() -> Result<()>" b
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+	${0}
+	Ok(())
+}
+endsnippet
+
+snippet lifetime "function with lifetime" b
+fn ${1:name}<'${2:a}>(${3:x} &'$2 ${4:Type}) -> &'$2 ${5:ReturnType} {
+	${0}
+}
+endsnippet
+
+snippet clone ".clone()"
+.clone()
+endsnippet
+
+snippet await ".await"
+.await
+endsnippet
+
+snippet unwrap ".unwrap()"
+.unwrap()
+endsnippet
+
+snippet expect ".expect()"
+.expect("${1:message}")
+endsnippet
+
+snippet andthen ".and_then()"
+.and_then(|${1:x}| ${0})
+endsnippet
+
+snippet map ".map()"
+.map(|${1:x}| ${0})
+endsnippet
+
+# vim:ft=snippets:

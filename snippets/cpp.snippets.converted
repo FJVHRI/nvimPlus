@@ -1,0 +1,522 @@
+###########################################################################
+#                         UltiSnips: C++ Snippets                         #
+###########################################################################
+
+priority -50
+
+# ---------------------------------------------------------------------------
+# Integer types (mutable)
+# ---------------------------------------------------------------------------
+snippet short "short variable" b
+short ${1:var} = ${2:0};
+endsnippet
+
+snippet int "int variable" b
+int ${1:var} = ${2:0};
+endsnippet
+
+snippet long "long variable" b
+long ${1:var} = ${2:0L};
+endsnippet
+
+snippet longlong "long long variable" b
+long long ${1:var} = ${2:0LL};
+endsnippet
+
+snippet ushort "unsigned short variable" b
+unsigned short ${1:var} = ${2:0u};
+endsnippet
+
+snippet uint "unsigned int variable" b
+unsigned int ${1:var} = ${2:0u};
+endsnippet
+
+snippet ulong "unsigned long variable" b
+unsigned long ${1:var} = ${2:0ul};
+endsnippet
+
+snippet ulonglong "unsigned long long variable" b
+unsigned long long ${1:var} = ${2:0ull};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Integer types (const)
+# ---------------------------------------------------------------------------
+snippet cshort "const short variable" b
+const short ${1:var} = ${2:0};
+endsnippet
+
+snippet cint "const int variable" b
+const int ${1:var} = ${2:0};
+endsnippet
+
+snippet clong "const long variable" b
+const long ${1:var} = ${2:0L};
+endsnippet
+
+snippet clonglong "const long long variable" b
+const long long ${1:var} = ${2:0LL};
+endsnippet
+
+snippet cushort "const unsigned short variable" b
+const unsigned short ${1:var} = ${2:0u};
+endsnippet
+
+snippet cuint "const unsigned int variable" b
+const unsigned int ${1:var} = ${2:0u};
+endsnippet
+
+snippet culong "const unsigned long variable" b
+const unsigned long ${1:var} = ${2:0ul};
+endsnippet
+
+snippet culonglong "const unsigned long long variable" b
+const unsigned long long ${1:var} = ${2:0ull};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Character types (mutable)
+# ---------------------------------------------------------------------------
+snippet char "char variable" b
+char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet schar "signed char variable" b
+signed char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet uchar "unsigned char variable" b
+unsigned char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet wchar "wchar_t variable" b
+wchar_t ${1:var} = ${2:L'\0'};
+endsnippet
+
+snippet char8 "char8_t variable (C++20)" b
+char8_t ${1:var} = ${2:u8'\0'};
+endsnippet
+
+snippet char16 "char16_t variable" b
+char16_t ${1:var} = ${2:u'\0'};
+endsnippet
+
+snippet char32 "char32_t variable" b
+char32_t ${1:var} = ${2:U'\0'};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Character types (const)
+# ---------------------------------------------------------------------------
+snippet cchar "const char variable" b
+const char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet cschar "const signed char variable" b
+const signed char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet cuchar "const unsigned char variable" b
+const unsigned char ${1:var} = ${2:'\0'};
+endsnippet
+
+snippet cwchar "const wchar_t variable" b
+const wchar_t ${1:var} = ${2:L'\0'};
+endsnippet
+
+snippet cchar8 "const char8_t variable (C++20)" b
+const char8_t ${1:var} = ${2:u8'\0'};
+endsnippet
+
+snippet cchar16 "const char16_t variable" b
+const char16_t ${1:var} = ${2:u'\0'};
+endsnippet
+
+snippet cchar32 "const char32_t variable" b
+const char32_t ${1:var} = ${2:U'\0'};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Floating point types (mutable)
+# ---------------------------------------------------------------------------
+snippet float "float variable" b
+float ${1:var} = ${2:0.0f};
+endsnippet
+
+snippet double "double variable" b
+double ${1:var} = ${2:0.0};
+endsnippet
+
+snippet ldouble "long double variable" b
+long double ${1:var} = ${2:0.0L};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Floating point types (const)
+# ---------------------------------------------------------------------------
+snippet cfloat "const float variable" b
+const float ${1:var} = ${2:0.0f};
+endsnippet
+
+snippet cdouble "const double variable" b
+const double ${1:var} = ${2:0.0};
+endsnippet
+
+snippet cldouble "const long double variable" b
+const long double ${1:var} = ${2:0.0L};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Boolean
+# ---------------------------------------------------------------------------
+snippet bool "bool variable" b
+bool ${1:var} = ${2:false};
+endsnippet
+
+snippet cbool "const bool variable" b
+const bool ${1:var} = ${2:false};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Pointers / references
+# ---------------------------------------------------------------------------
+snippet ptr "pointer variable" b
+${1:int}* ${2:ptr} = ${3:nullptr};
+endsnippet
+
+snippet cptr "pointer to const" b
+const ${1:int}* ${2:ptr} = ${3:nullptr};
+endsnippet
+
+snippet ref "reference variable" b
+${1:int}& ${2:ref} = ${3:var};
+endsnippet
+
+snippet cref "const reference" b
+const ${1:int}& ${2:ref} = ${3:var};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# I/O
+# ---------------------------------------------------------------------------
+snippet cout "std::cout << ... << std::endl"
+std::cout << ${1:""} << std::endl;
+endsnippet
+
+snippet cin "std::cin >> ..."
+std::cin >> ${1:var};
+endsnippet
+
+snippet cerr "std::cerr << ... << std::endl"
+std::cerr << ${1:""} << std::endl;
+endsnippet
+
+snippet clog "std::clog << ... << std::endl"
+std::clog << ${1:""} << std::endl;
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Preprocessor
+# ---------------------------------------------------------------------------
+snippet once "#pragma once" b
+#pragma once
+endsnippet
+
+snippet inc "#include <...>"
+#include <${1:iostream}>
+endsnippet
+
+snippet Inc "#include \"...\""
+#include "${1:`!p snip.rv = (snip.basename or 'file') + '.hpp'`}"
+endsnippet
+
+snippet ndef "#ifndef ... #define ... #endif" b
+#ifndef ${1:SYMBOL}
+#define $1
+${0}
+#endif /* $1 */
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Loops
+# ---------------------------------------------------------------------------
+snippet fori "for (int i = 0; i < n; ++i)" b
+for (int ${2:i} = 0; $2 < ${1:count}; ++$2) {
+	${0}
+}
+endsnippet
+
+snippet fore "range-based for loop" b
+for (auto ${2:item} : ${1:container}) {
+	${0}
+}
+endsnippet
+
+snippet while "while loop" b
+while (${1:condition}) {
+	${0}
+}
+endsnippet
+
+snippet dowhile "do ... while" b
+do {
+	${0}
+} while (${1:condition});
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Functions
+# ---------------------------------------------------------------------------
+snippet Fv "void function" b
+void ${1:function_name}(${2:parameters}) {
+	${0}
+}
+endsnippet
+
+snippet Fi "int function" b
+int ${1:function_name}(${2:parameters}) {
+	${0}
+	return ${3:0};
+}
+endsnippet
+
+snippet Fb "bool function" b
+bool ${1:function_name}(${2:parameters}) {
+	${0}
+	return ${3:false};
+}
+endsnippet
+
+snippet fun "function definition" b
+${1:void} ${2:function_name}(${3:parameters}) {
+	${VISUAL}${0}
+}
+endsnippet
+
+snippet fund "function declaration" b
+${1:void} ${2:function_name}(${3:parameters});
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Class / OOP
+# ---------------------------------------------------------------------------
+snippet class "class with public/private" b
+class ${1:ClassName} {
+public:
+	${0}
+private:
+};
+endsnippet
+
+snippet struct "struct" b
+struct ${1:Name} {
+	${0}
+};
+endsnippet
+
+snippet ctor "constructor" b
+${1:ClassName}(${2:parameters}) ${3:: ${4:init_list}} {
+	${0}
+}
+endsnippet
+
+snippet dtor "destructor" b
+~${1:ClassName}() {
+	${0}
+}
+endsnippet
+
+snippet vdtor "virtual destructor" b
+virtual ~${1:ClassName}() = default;
+endsnippet
+
+snippet override "override method" b
+${1:void} ${2:method}(${3:params}) override {
+	${0}
+}
+endsnippet
+
+snippet virtual "virtual method" b
+virtual ${1:void} ${2:method}(${3:params}) {
+	${0}
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Templates / namespaces
+# ---------------------------------------------------------------------------
+snippet tmpl "template <typename T>" b
+template <typename ${1:T}>
+${0}
+endsnippet
+
+snippet tmpl2 "template <typename T, typename U>" b
+template <typename ${1:T}, typename ${2:U}>
+${0}
+endsnippet
+
+snippet ns "namespace" b
+namespace ${1:name} {
+${0}
+} // namespace $1
+endsnippet
+
+snippet nsa "namespace anonymous" b
+namespace {
+${0}
+} // anonymous namespace
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Error handling
+# ---------------------------------------------------------------------------
+snippet try "try/catch" b
+try {
+	${1:/* code */}
+} catch (${2:const std::exception& e}) {
+	${0:/* handle */}
+}
+endsnippet
+
+snippet catch "catch block"
+catch (${1:const std::exception& e}) {
+	${0}
+}
+endsnippet
+
+snippet throw "throw ..."
+throw ${1:std::runtime_error("${2:error}")};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Memory / smart pointers
+# ---------------------------------------------------------------------------
+snippet new "new ..."
+${1:Type}* ${2:ptr} = new $1(${3:args});
+endsnippet
+
+snippet delete "delete ..."
+delete ${1:ptr};
+endsnippet
+
+snippet deletea "delete[] ..."
+delete[] ${1:ptr};
+endsnippet
+
+snippet up "std::unique_ptr"
+std::unique_ptr<${1:Type}> ${2:ptr} = std::make_unique<$1>(${3:args});
+endsnippet
+
+snippet sp "std::shared_ptr"
+std::shared_ptr<${1:Type}> ${2:ptr} = std::make_shared<$1>(${3:args});
+endsnippet
+
+snippet wp "std::weak_ptr"
+std::weak_ptr<${1:Type}> ${2:ptr};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# STL containers
+# ---------------------------------------------------------------------------
+snippet vec "std::vector"
+std::vector<${1:int}> ${2:name};
+endsnippet
+
+snippet map "std::map"
+std::map<${1:key}, ${2:value}> ${3:name};
+endsnippet
+
+snippet umap "std::unordered_map"
+std::unordered_map<${1:key}, ${2:value}> ${3:name};
+endsnippet
+
+snippet set "std::set"
+std::set<${1:int}> ${2:name};
+endsnippet
+
+snippet uset "std::unordered_set"
+std::unordered_set<${1:int}> ${2:name};
+endsnippet
+
+snippet str "std::string"
+std::string ${1:name} = "${2:value}";
+endsnippet
+
+snippet sv "std::string_view (C++17)"
+std::string_view ${1:name} = "${2:value}";
+endsnippet
+
+snippet pair "std::pair"
+std::pair<${1:int}, ${2:int}> ${3:name};
+endsnippet
+
+snippet tuple "std::tuple"
+std::tuple<${1:int}, ${2:int}, ${3:int}> ${4:name};
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Lambda
+# ---------------------------------------------------------------------------
+snippet lambda "lambda expression"
+[${1:&}](${2:params}) ${3:-> ${4:void}} {
+	${0}
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+snippet main "int main()" b
+int main(int argc, char* argv[]) {
+	${0}
+	return 0;
+}
+endsnippet
+
+snippet mainv "int main(void)" b
+int main() {
+	${0}
+	return 0;
+}
+endsnippet
+
+# ---------------------------------------------------------------------------
+# Misc
+# ---------------------------------------------------------------------------
+snippet ret "return ...;"
+return ${0:/* value */};
+endsnippet
+
+snippet nullptr "nullptr"
+nullptr
+endsnippet
+
+snippet auto "auto ..."
+auto ${1:var} = ${2:value};
+endsnippet
+
+snippet constauto "const auto ..."
+const auto ${1:var} = ${2:value};
+endsnippet
+
+snippet staticcast "static_cast<...>"
+static_cast<${1:type}>(${2:expr});
+endsnippet
+
+snippet dynamiccast "dynamic_cast<...>"
+dynamic_cast<${1:type}>(${2:expr});
+endsnippet
+
+snippet constcast "const_cast<...>"
+const_cast<${1:type}>(${2:expr});
+endsnippet
+
+snippet reinterpretcast "reinterpret_cast<...>"
+reinterpret_cast<${1:type}>(${2:expr});
+endsnippet
+
+snippet sizeof "sizeof(...)"
+sizeof(${1:/* type or expr */});
+endsnippet
+
+# vim:ft=snippets:

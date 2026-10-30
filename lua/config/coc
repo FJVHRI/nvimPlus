@@ -1,0 +1,13 @@
+-- config/coc.lua  （只留数据，不抢键位）
+return {
+  "neoclide/coc.nvim",
+  branch = "release",
+  config = function()
+    -- 禁用 Coc 自己的浮动窗/签名/跳转，全交给 blink
+    vim.g.coc_config_home = vim.fn.stdpath("config") .. "/coc-settings.json"
+    vim.g.coc_disable_float_window = true
+    vim.g.coc_disable_signature_help = true
+    vim.g.coc_disable_hover = true
+    -- 保留诊断、outline、命令等非补全功能
+  end,
+}
